@@ -1,0 +1,69 @@
+# ESP-IDF Build System
+.cache
+build/
+sdkconfig.old
+*.pyc
+
+# ESP-IDF managed components
+managed_components/
+dependencies.lock
+
+# Python virtual environment
+.venv/
+venv/
+
+# IDE specific files
+.vscode/
+.idea/
+.cache/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Compiled files
+*.o
+*.a
+*.so
+*.elf
+*.bin
+*.map
+
+# Debug files
+*.dSYM/
+
+# Private configuration (contains sensitive data)
+sdkconfig
+sdkconfig.defaults.local
+
+# Backup files
+*.bak
+*.old
+
+# Log files
+*.log
+
+# Flash download tool files
+flash_project_args
+
+# GDB init files (generated)
+gdbinit/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Dependency tracking files
+*.d
+
+# Assembly listings
+*.lst
+*.lss
+
+# Bootloader artifacts (auto-generated)
+bootloader-prefix/
+
+# Partition table binaries
+partition_table/*.bin

@@ -225,11 +225,11 @@ int calculate_optimal_power(void) {
     time_t now = time(NULL);
     localtime_r(&now, &timeinfo);
     
-    // High power during day, low power at night
+    // Solar inverter: full power during daytime, stop at night (no solar energy)
     if (timeinfo.tm_hour >= 6 && timeinfo.tm_hour < 18) {
-        return 100;  // 100%
+        return 100;  // 100% during daytime
     } else {
-        return 50;   // 50%
+        return 0;    // 0% at night (no solar power available)
     }
 }
 ```

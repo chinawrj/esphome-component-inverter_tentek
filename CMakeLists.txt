@@ -1,12 +1,12 @@
 # ESP-IDF Set Power Example - CMakeLists.txt
 # 
-# 这个文件配置ESP-IDF项目的构建系统
-# 适用于ESP-IDF v5.0及更高版本
+# This file configures the ESP-IDF project build system
+# Compatible with ESP-IDF v5.0 and higher
 
 cmake_minimum_required(VERSION 3.16)
 
-# 包含ESP-IDF构建系统
+# Include ESP-IDF build system
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-# 定义项目
+# Define project
 project(esp_idf_set_power_example)

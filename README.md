@@ -1,128 +1,128 @@
 # ESP-IDF Set Power Example
 
-基于ESP-IDF的MIC POWER逆变器功率设置示例项目。
+ESP-IDF based MIC POWER inverter power setting example project.
 
-## 功能特性
+## Features
 
-- ✅ **HTTP POST请求** - 使用ESP-IDF HTTP客户端发送设置功率请求
-- ✅ **MD5签名计算** - 完整实现API签名算法
-- ✅ **定时任务** - 独立FreeRTOS任务每分钟发送一次请求
-- ✅ **错误处理** - 完善的超时和错误处理机制
-- ✅ **WiFi管理** - 自动WiFi连接和重连
-- ✅ **认证支持** - JSESSIONID cookie认证
+- ✅ **HTTP POST Requests** - Send power setting requests using ESP-IDF HTTP client
+- ✅ **MD5 Signature Calculation** - Complete implementation of API signature algorithm
+- ✅ **Scheduled Tasks** - Independent FreeRTOS task sends requests every minute
+- ✅ **Error Handling** - Comprehensive timeout and error handling mechanism
+- ✅ **WiFi Management** - Automatic WiFi connection and reconnection
+- ✅ **Authentication Support** - JSESSIONID cookie authentication
 
-## 项目结构
+## Project Structure
 
 ```
 esp_idf_set_power_example/
-├── CMakeLists.txt                    # 项目配置文件
+├── CMakeLists.txt                    # Project configuration file
 ├── main/
-│   ├── CMakeLists.txt               # 主组件配置
-│   └── esp_idf_set_power_example.c  # 主程序源码
-└── sdkconfig                        # ESP-IDF配置文件
+│   ├── CMakeLists.txt               # Main component configuration
+│   └── esp_idf_set_power_example.c  # Main program source code
+└── sdkconfig                        # ESP-IDF configuration file
 ```
 
-## 硬件要求
+## Hardware Requirements
 
-- ESP32 / ESP32-C3 / ESP32-C6 / ESP32-S3 开发板
-- USB连接线
-- WiFi网络连接
+- ESP32 / ESP32-C3 / ESP32-C6 / ESP32-S3 Development Board
+- USB Cable
+- WiFi Network Connection
 
-## 软件要求
+## Software Requirements
 
-- ESP-IDF v5.0 或更高版本
+- ESP-IDF v5.0 or higher
 - Python 3.8+
-- 已配置的ESP-IDF开发环境
+- Configured ESP-IDF development environment
 
-## 配置步骤
+## Configuration Steps
 
-### 1. 修改WiFi配置
+### 1. Modify WiFi Configuration
 
-编辑 `esp_idf_set_power_example.c` 中的WiFi配置：
-
-```c
-#define WIFI_SSID      "your_wifi_ssid"      // 你的WiFi名称
-#define WIFI_PASSWORD  "your_wifi_password"  // 你的WiFi密码
-```
-
-### 2. 修改设备配置
-
-修改设备序列号和认证信息：
+Edit WiFi configuration in `esp_idf_set_power_example.c`:
 
 ```c
-#define DEVICE_SN      "TJ0323E30A0993"                      // 设备序列号
-#define JSESSIONID     "4E5B239CA671AE226063F4620697D07A"    // 登录后的Session ID
+#define WIFI_SSID      "your_wifi_ssid"      // Your WiFi name
+#define WIFI_PASSWORD  "your_wifi_password"  // Your WiFi password
 ```
 
-### 3. 调整请求间隔（可选）
+### 2. Modify Device Configuration
 
-默认每60秒发送一次请求，可以修改：
+Modify device serial number and authentication information:
 
 ```c
-#define REQUEST_INTERVAL_MS  (60 * 1000)  // 60秒
+#define DEVICE_SN      "TJ0323E30A0993"                      // Device serial number
+#define JSESSIONID     "4E5B239CA671AE226063F4620697D07A"    // Session ID after login
 ```
 
-## 构建和烧录
+### 3. Adjust Request Interval (Optional)
 
-### 1. 激活ESP-IDF环境
+Default is one request every 60 seconds, you can modify:
+
+```c
+#define REQUEST_INTERVAL_MS  (60 * 1000)  // 60 seconds
+```
+
+## Build and Flash
+
+### 1. Activate ESP-IDF Environment
 
 ```bash
 cd ~/esp/esp-idf
 . ./export.sh
 ```
 
-### 2. 设置目标芯片
+### 2. Set Target Chip
 
 ```bash
-# 对于ESP32
+# For ESP32
 idf.py set-target esp32
 
-# 对于ESP32-C6
+# For ESP32-C6
 idf.py set-target esp32c6
 
-# 对于ESP32-S3
+# For ESP32-S3
 idf.py set-target esp32s3
 ```
 
-### 3. 配置项目（可选）
+### 3. Configure Project (Optional)
 
 ```bash
 idf.py menuconfig
 ```
 
-重要配置项：
-- `Component config → ESP HTTP Client` → 启用HTTP客户端
-- `Component config → mbedTLS` → 确保MD5支持已启用
-- `Component config → FreeRTOS` → 调整任务栈大小（如需要）
+Important configuration items:
+- `Component config → ESP HTTP Client` → Enable HTTP client
+- `Component config → mbedTLS` → Ensure MD5 support is enabled
+- `Component config → FreeRTOS` → Adjust task stack size (if needed)
 
-### 4. 构建项目
+### 4. Build Project
 
 ```bash
 idf.py build
 ```
 
-### 5. 烧录到设备
+### 5. Flash to Device
 
 ```bash
-# 使用1500000波特率烧录（推荐）
+# Use 1500000 baud rate for flashing (recommended)
 idf.py -b 1500000 flash
 
-# 或使用默认波特率
+# Or use default baud rate
 idf.py flash
 ```
 
-### 6. 监控串口输出
+### 6. Monitor Serial Output
 
 ```bash
 idf.py -b 115200 monitor
 
-# 或者一次性完成烧录和监控
+# Or flash and monitor in one go
 idf.py -b 1500000 flash monitor
 ```
 
-## 日志输出示例
+## Log Output Examples
 
-### 正常运行
+### Normal Operation
 
 ```
 I (1234) SET_POWER: MIC POWER Set Inverter Power Example
@@ -144,88 +144,88 @@ I (3577) SET_POWER: HTTP_EVENT_ON_CONNECTED
 I (3788) SET_POWER: HTTP_EVENT_ON_DATA, len=45
 I (3799) SET_POWER: HTTP_EVENT_ON_FINISH
 I (3810) SET_POWER: HTTP Status = 200, content_length = 45
-I (3821) SET_POWER: Response: {"result":2,"msg":"设备离线!","obj":null}
+I (3821) SET_POWER: Response: {"result":2,"msg":"Device offline!","obj":null}
 I (3832) SET_POWER: ⚠️  Device offline
 I (3843) SET_POWER: ✅ Request successful (power=100%)
 I (3854) SET_POWER: Waiting 60 seconds until next request...
 ```
 
-### 认证失败
+### Authentication Failure
 
 ```
 E (3821) SET_POWER: ❌ Authentication failed: Please login
 E (3832) SET_POWER: ❌ Request failed (1/5 consecutive failures)
 ```
 
-### 网络错误
+### Network Error
 
 ```
 E (10000) SET_POWER: ❌ HTTP request failed: ESP_ERR_HTTP_TIMEOUT
 E (10011) SET_POWER: ❌ Request failed (2/5 consecutive failures)
 ```
 
-## 代码架构
+## Code Architecture
 
-### 主要函数
+### Main Functions
 
-| 函数名 | 功能描述 |
+| Function Name | Function Description |
 |--------|---------|
-| `app_main()` | 主入口函数，初始化系统 |
-| `wifi_init_sta()` | WiFi站点模式初始化 |
-| `wifi_event_handler()` | WiFi事件处理器 |
-| `set_power_task()` | 定时发送请求的FreeRTOS任务 |
-| `send_set_power_request()` | 发送HTTP POST请求 |
-| `calculate_signature()` | 计算MD5签名 |
-| `url_encode()` | URL编码函数 |
-| `http_event_handler()` | HTTP事件处理器 |
+| `app_main()` | Main entry function, system initialization |
+| `wifi_init_sta()` | WiFi station mode initialization |
+| `wifi_event_handler()` | WiFi event handler |
+| `set_power_task()` | FreeRTOS task for sending periodic requests |
+| `send_set_power_request()` | Send HTTP POST request |
+| `calculate_signature()` | Calculate MD5 signature |
+| `url_encode()` | URL encoding function |
+| `http_event_handler()` | HTTP event handler |
 
-### 关键配置宏
+### Key Configuration Macros
 
-| 宏定义 | 默认值 | 说明 |
+| Macro Definition | Default Value | Description |
 |--------|--------|------|
-| `WIFI_SSID` | "your_wifi_ssid" | WiFi网络名称 |
-| `WIFI_PASSWORD` | "your_wifi_password" | WiFi密码 |
-| `WIFI_MAXIMUM_RETRY` | 5 | WiFi重连最大次数 |
-| `REQUEST_INTERVAL_MS` | 60000 | 请求间隔（毫秒） |
-| `HTTP_TIMEOUT_MS` | 10000 | HTTP超时时间（毫秒） |
-| `SET_POWER_TASK_STACK_SIZE` | 8192 | 任务栈大小（字节） |
-| `SET_POWER_TASK_PRIORITY` | 5 | 任务优先级 |
+| `WIFI_SSID` | "your_wifi_ssid" | WiFi network name |
+| `WIFI_PASSWORD` | "your_wifi_password" | WiFi password |
+| `WIFI_MAXIMUM_RETRY` | 5 | Maximum WiFi reconnection attempts |
+| `REQUEST_INTERVAL_MS` | 60000 | Request interval (milliseconds) |
+| `HTTP_TIMEOUT_MS` | 10000 | HTTP timeout (milliseconds) |
+| `SET_POWER_TASK_STACK_SIZE` | 8192 | Task stack size (bytes) |
+| `SET_POWER_TASK_PRIORITY` | 5 | Task priority |
 
-## 错误处理机制
+## Error Handling Mechanism
 
-### 1. HTTP超时处理
-- 超时时间：10秒
-- 超时后自动返回错误
+### 1. HTTP Timeout Handling
+- Timeout duration: 10 seconds
+- Automatically returns error after timeout
 
-### 2. 连续失败处理
-- 记录连续失败次数
-- 达到5次连续失败后尝试重连WiFi
-- 重连后重置失败计数器
+### 2. Consecutive Failure Handling
+- Records consecutive failure count
+- After 5 consecutive failures, attempts WiFi reconnection
+- Resets failure counter after successful reconnection
 
-### 3. WiFi断连处理
-- 自动重连机制
-- 最多重试5次
-- 重连成功后继续正常运行
+### 3. WiFi Disconnection Handling
+- Automatic reconnection mechanism
+- Maximum 5 retry attempts
+- Continues normal operation after successful reconnection
 
-### 4. JSON响应解析
-- `result=0`: 设置成功
-- `result=2`: 设备离线（视为成功）
-- `result=10000`: 认证失败
-- 其他：未知错误
+### 4. JSON Response Parsing
+- `result=0`: Setting successful
+- `result=2`: Device offline (considered successful)
+- `result=10000`: Authentication failure
+- Other: Unknown error
 
-## 扩展功能建议
+## Extension Feature Suggestions
 
-### 1. 动态功率调整
+### 1. Dynamic Power Adjustment
 
 ```c
-// 在 set_power_task() 中添加
+// Add to set_power_task()
 int calculate_optimal_power(void) {
-    // 根据时间、天气、负载等条件动态计算
+    // Calculate dynamically based on time, weather, load conditions
     struct tm timeinfo;
     time_t now = time(NULL);
     localtime_r(&now, &timeinfo);
     
-    // 白天高功率，夜间低功率
+    // High power during day, low power at night
     if (timeinfo.tm_hour >= 6 && timeinfo.tm_hour < 18) {
         return 100;  // 100%
     } else {
@@ -234,9 +234,9 @@ int calculate_optimal_power(void) {
 }
 ```
 
-### 2. HTTPS支持
+### 2. HTTPS Support
 
-修改URL和配置：
+Modify URL and configuration:
 
 ```c
 #define API_URL "https://server-tj.shuoxd.com:8443/v1/manage/setOnGridInverterParam"
@@ -244,82 +244,82 @@ int calculate_optimal_power(void) {
 esp_http_client_config_t config = {
     .url = API_URL,
     .transport_type = HTTP_TRANSPORT_OVER_SSL,
-    .cert_pem = server_cert_pem_start,  // 服务器证书
-    // ... 其他配置
+    .cert_pem = server_cert_pem_start,  // Server certificate
+    // ... other configurations
 };
 ```
 
-### 3. 登录功能
+### 3. Login Feature
 
-添加登录API调用以自动获取JSESSIONID：
+Add login API call to automatically get JSESSIONID:
 
 ```c
 esp_err_t login_and_get_session(const char *email, const char *password, char *session_out);
 ```
 
-### 4. OTA固件更新
+### 4. OTA Firmware Update
 
-集成ESP-IDF OTA功能实现远程更新。
+Integrate ESP-IDF OTA functionality for remote updates.
 
-## 故障排除
+## Troubleshooting
 
-### 问题1: 编译错误 `mbedtls/md5.h not found`
+### Issue 1: Compile error `mbedtls/md5.h not found`
 
-**解决方案**：
+**Solution**:
 ```bash
 idf.py menuconfig
-# 进入 Component config → mbedTLS → 确保 MD5 支持已启用
+# Navigate to Component config → mbedTLS → Ensure MD5 support is enabled
 ```
 
-### 问题2: WiFi连接失败
+### Issue 2: WiFi connection failure
 
-**检查项**：
-1. WiFi SSID和密码是否正确
-2. 2.4GHz WiFi支持（ESP32不支持5GHz）
-3. 路由器是否允许新设备接入
+**Check items**:
+1. WiFi SSID and password are correct
+2. 2.4GHz WiFi support (ESP32 does not support 5GHz)
+3. Router allows new device connections
 
-### 问题3: HTTP请求超时
+### Issue 3: HTTP request timeout
 
-**可能原因**：
-1. 服务器不可达
-2. 网络防火墙阻止
-3. DNS解析失败
+**Possible causes**:
+1. Server unreachable
+2. Network firewall blocking
+3. DNS resolution failure
 
-**解决方案**：
-- 增加超时时间
-- 使用IP地址替代域名
-- 检查网络连接
+**Solutions**:
+- Increase timeout duration
+- Use IP address instead of domain name
+- Check network connection
 
-### 问题4: 认证失败 (result=10000)
+### Issue 4: Authentication failure (result=10000)
 
-**原因**: JSESSIONID已过期
+**Reason**: JSESSIONID has expired
 
-**解决方案**：
-1. 使用Python脚本重新登录获取新的JSESSIONID
-2. 实现自动登录功能
+**Solutions**:
+1. Use Python script to re-login and get new JSESSIONID
+2. Implement automatic login feature
 
-## 性能优化
+## Performance Optimization
 
-### 内存优化
-- 调整 `SET_POWER_TASK_STACK_SIZE` 根据实际需求
-- 使用 `uxTaskGetStackHighWaterMark()` 监控栈使用
+### Memory Optimization
+- Adjust `SET_POWER_TASK_STACK_SIZE` based on actual requirements
+- Use `uxTaskGetStackHighWaterMark()` to monitor stack usage
 
-### 功耗优化
-- 使用WiFi省电模式
-- 在请求间隔使用Deep Sleep
-- 减少日志输出级别
+### Power Consumption Optimization
+- Use WiFi power saving mode
+- Use Deep Sleep between request intervals
+- Reduce log output level
 
-## 参考资料
+## References
 
-- [ESP-IDF编程指南](https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/)
-- [ESP HTTP Client](https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/api-reference/protocols/esp_http_client.html)
+- [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
+- [ESP HTTP Client](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_client.html)
 - [FreeRTOS](https://www.freertos.org/Documentation/RTOS_book.html)
-- [ESP WiFi](https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/api-guides/wifi.html)
+- [ESP WiFi](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html)
 
-## 许可证
+## License
 
-本示例代码遵循ESP-IDF许可证（Apache 2.0）
+This example code follows the ESP-IDF license (Apache 2.0)
 
-## 贡献
+## Contributing
 
-欢迎提交Issue和Pull Request改进本示例！
+Issues and Pull Requests are welcome to improve this example!

@@ -1,325 +1,374 @@
-# ESP-IDF Set Power Example
+# ESPHome Inverter Tentek Component
 
-ESP-IDF based MIC POWER inverter power setting example project.
+ESPHome custom component for controlling Tentek solar inverters via HTTP API.
 
 ## Features
 
-- ✅ **HTTP POST Requests** - Send power setting requests using ESP-IDF HTTP client
-- ✅ **MD5 Signature Calculation** - Complete implementation of API signature algorithm
-- ✅ **Scheduled Tasks** - Independent FreeRTOS task sends requests every minute
-- ✅ **Error Handling** - Comprehensive timeout and error handling mechanism
-- ✅ **WiFi Management** - Automatic WiFi connection and reconnection
-- ✅ **Authentication Support** - JSESSIONID cookie authentication
+- ✅ **ESPHome Integration** - Native ESPHome component with YAML configuration
+- ✅ **HTTP API Control** - Control inverter power output via Tentek cloud API
+- ✅ **Authentication** - Secure login with email/password credentials
+- ✅ **Power Control** - Set inverter output power (10% - 100% in 10% steps)
+- ✅ **MD5 Signature** - Automatic API request signing
+- ✅ **Error Handling** - Comprehensive retry mechanism and error logging
+- ✅ **ESPHome Automation** - Integrate with ESPHome automations and triggers
 
-## Project Structure
+## Supported Hardware
 
-```
-esp_idf_set_power_example/
-├── CMakeLists.txt                    # Project configuration file
-├── main/
-│   ├── CMakeLists.txt               # Main component configuration
-│   └── esp_idf_set_power_example.c  # Main program source code
-└── sdkconfig                        # ESP-IDF configuration file
-```
+- ESP32 (all variants)
+- ESP32-C3
+- ESP32-C6
+- ESP32-S3
+- Any ESP32 board supported by ESPHome
 
-## Hardware Requirements
+## Installation
 
-- ESP32 / ESP32-C3 / ESP32-C6 / ESP32-S3 Development Board
-- USB Cable
-- WiFi Network Connection
+### Method 1: Local Component (Recommended for Development)
 
-## Software Requirements
-
-- ESP-IDF v5.0 or higher
-- Python 3.8+
-- Configured ESP-IDF development environment
-
-## Configuration Steps
-
-### 1. Modify WiFi Configuration
-
-Edit WiFi configuration in `esp_idf_set_power_example.c`:
-
-```c
-#define WIFI_SSID      "your_wifi_ssid"      // Your WiFi name
-#define WIFI_PASSWORD  "your_wifi_password"  // Your WiFi password
-```
-
-### 2. Modify Device Configuration
-
-Modify device serial number and authentication information:
-
-```c
-#define DEVICE_SN      "TJ0323E30A0993"                      // Device serial number
-#define JSESSIONID     "4E5B239CA671AE226063F4620697D07A"    // Session ID after login
-```
-
-### 3. Adjust Request Interval (Optional)
-
-Default is one request every 60 seconds, you can modify:
-
-```c
-#define REQUEST_INTERVAL_MS  (60 * 1000)  // 60 seconds
-```
-
-## Build and Flash
-
-### 1. Activate ESP-IDF Environment
+1. Clone this repository into your ESPHome `components` directory:
 
 ```bash
-cd ~/esp/esp-idf
-. ./export.sh
+cd esphome_config_directory
+mkdir -p components
+cd components
+git clone https://github.com/chinawrj/esphome-component-inverter_tentek.git inverter_tentek
 ```
 
-### 2. Set Target Chip
+2. Reference in your ESPHome YAML configuration:
 
-```bash
-# For ESP32
-idf.py set-target esp32
-
-# For ESP32-C6
-idf.py set-target esp32c6
-
-# For ESP32-S3
-idf.py set-target esp32s3
+```yaml
+external_components:
+  - source:
+      type: local
+      path: components
 ```
 
-### 3. Configure Project (Optional)
+### Method 2: GitHub Repository (Recommended for Production)
 
-```bash
-idf.py menuconfig
+```yaml
+external_components:
+  - source:
+      type: git
+      url: https://github.com/chinawrj/esphome-component-inverter_tentek
+      ref: main
+    components: [inverter_tentek]
 ```
 
-Important configuration items:
-- `Component config → ESP HTTP Client` → Enable HTTP client
-- `Component config → mbedTLS` → Ensure MD5 support is enabled
-- `Component config → FreeRTOS` → Adjust task stack size (if needed)
+## Configuration
 
-### 4. Build Project
+### Basic Example
 
-```bash
-idf.py build
+```yaml
+# Enable external components
+external_components:
+  - source:
+      type: local
+      path: components
+
+# Configure Tentek inverter
+inverter_tentek:
+  id: my_inverter
+  email: !secret tentek_email          # Your Tentek account email
+  password: !secret tentek_password    # Your Tentek account password
+  device_sn: !secret tentek_device_sn  # Your inverter device serial number
+  output_power: 100                    # Initial power: 100%
+  request_timeout: 10s                 # HTTP request timeout
+  max_retry_count: 3                   # Max retry attempts on failure
 ```
 
-### 5. Flash to Device
+### Secrets Configuration
 
-```bash
-# Use 1500000 baud rate for flashing (recommended)
-idf.py -b 1500000 flash
+Add to your `secrets.yaml`:
 
-# Or use default baud rate
-idf.py flash
+```yaml
+# Tentek Inverter Credentials
+tentek_email: "your_email@example.com"
+tentek_password: "your_password"
+tentek_device_sn: "YOUR_DEVICE_SERIAL_NUMBER"
 ```
 
-### 6. Monitor Serial Output
+### Advanced Configuration with Automation
 
-```bash
-idf.py -b 115200 monitor
+```yaml
+inverter_tentek:
+  id: solar_inverter
+  email: !secret tentek_email
+  password: !secret tentek_password
+  device_sn: !secret tentek_device_sn
+  output_power: 100
+  request_timeout: 10s
+  max_retry_count: 3
 
-# Or flash and monitor in one go
-idf.py -b 1500000 flash monitor
+# Global variable to track current power level
+globals:
+  - id: current_power_percent
+    type: int
+    restore_value: true
+    initial_value: '100'
+
+# Automation example: Adjust power based on time of day
+time:
+  - platform: sntp
+    id: sntp_time
+    on_time:
+      # Full power during peak solar hours (10:00 - 16:00)
+      - hours: 10
+        minutes: 0
+        seconds: 0
+        then:
+          - lambda: |-
+              id(solar_inverter).set_output_power(100);
+              id(current_power_percent) = 100;
+      
+      # Reduce power in evening (18:00)
+      - hours: 18
+        minutes: 0
+        seconds: 0
+        then:
+          - lambda: |-
+              id(solar_inverter).set_output_power(50);
+              id(current_power_percent) = 50;
+      
+      # Minimum power at night (22:00)
+      - hours: 22
+        minutes: 0
+        seconds: 0
+        then:
+          - lambda: |-
+              id(solar_inverter).set_output_power(10);
+              id(current_power_percent) = 10;
 ```
 
-## Log Output Examples
+## Component API
 
-### Normal Operation
+### Configuration Options
 
-```
-I (1234) SET_POWER: MIC POWER Set Inverter Power Example
-I (1245) SET_POWER: ESP-IDF Version: v5.1.2
-I (1256) SET_POWER: Initializing WiFi...
-I (1267) SET_POWER: wifi_init_sta finished.
-I (3456) SET_POWER: Connected to AP SSID:your_wifi_ssid
-I (3467) SET_POWER: Got IP:192.168.1.100
-I (3478) SET_POWER: WiFi initialized successfully
-I (3489) SET_POWER: Set power task created successfully
-I (3500) SET_POWER: System initialized, monitoring will run every 60 seconds
-I (3511) SET_POWER: Set power task started
-I (3522) SET_POWER: WiFi connected, starting periodic requests
-I (3533) SET_POWER: Preparing request: device=TJ0323E30A0993, power=100%, timestamp=1761566400000
-I (3544) SET_POWER: Sign string: deviceSn=TJ0323E30A0993&outputPower=1001f80ca5871919371ea71716cae4841bd
-I (3555) SET_POWER: Signature: 21cb9f6448bd1b65a78c05e2f2c6e0a6
-I (3566) SET_POWER: Sending HTTP POST request...
-I (3577) SET_POWER: HTTP_EVENT_ON_CONNECTED
-I (3788) SET_POWER: HTTP_EVENT_ON_DATA, len=45
-I (3799) SET_POWER: HTTP_EVENT_ON_FINISH
-I (3810) SET_POWER: HTTP Status = 200, content_length = 45
-I (3821) SET_POWER: Response: {"result":2,"msg":"Device offline!","obj":null}
-I (3832) SET_POWER: ⚠️  Device offline
-I (3843) SET_POWER: ✅ Request successful (power=100%)
-I (3854) SET_POWER: Waiting 60 seconds until next request...
-```
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `id` | ID | Yes | - | Component identifier for referencing in automations |
+| `email` | string | Yes | - | Tentek account email address |
+| `password` | string | Yes | - | Tentek account password |
+| `device_sn` | string | Yes | - | Inverter device serial number |
+| `output_power` | int | No | 100 | Initial power level (10-100, step 10) |
+| `request_timeout` | time | No | 10s | HTTP request timeout duration |
+| `max_retry_count` | int | No | 3 | Maximum retry attempts on failure |
 
-### Authentication Failure
+### Lambda Functions
 
-```
-E (3821) SET_POWER: ❌ Authentication failed: Please login
-E (3832) SET_POWER: ❌ Request failed (1/5 consecutive failures)
+#### `set_output_power(int power_percent)`
+
+Set inverter output power level.
+
+**Parameters:**
+- `power_percent`: Power level percentage (10, 20, 30, ..., 100)
+
+**Example:**
+```yaml
+lambda: |-
+  id(solar_inverter).set_output_power(80);  // Set to 80%
 ```
 
-### Network Error
+**Constraints:**
+- Only accepts multiples of 10 (10%, 20%, 30%, ..., 100%)
+- Values outside this range will be clamped to valid range
+- Power setting is persistent until manually changed
 
-```
-E (10000) SET_POWER: ❌ HTTP request failed: ESP_ERR_HTTP_TIMEOUT
-E (10011) SET_POWER: ❌ Request failed (2/5 consecutive failures)
-```
+## Use Cases
 
-## Code Architecture
+### 1. Dynamic Power Control Based on Grid Monitoring
 
-### Main Functions
-
-| Function Name | Function Description |
-|--------|---------|
-| `app_main()` | Main entry function, system initialization |
-| `wifi_init_sta()` | WiFi station mode initialization |
-| `wifi_event_handler()` | WiFi event handler |
-| `set_power_task()` | FreeRTOS task for sending periodic requests |
-| `send_set_power_request()` | Send HTTP POST request |
-| `calculate_signature()` | Calculate MD5 signature |
-| `url_encode()` | URL encoding function |
-| `http_event_handler()` | HTTP event handler |
-
-### Key Configuration Macros
-
-| Macro Definition | Default Value | Description |
-|--------|--------|------|
-| `WIFI_SSID` | "your_wifi_ssid" | WiFi network name |
-| `WIFI_PASSWORD` | "your_wifi_password" | WiFi password |
-| `WIFI_MAXIMUM_RETRY` | 5 | Maximum WiFi reconnection attempts |
-| `REQUEST_INTERVAL_MS` | 60000 | Request interval (milliseconds) |
-| `HTTP_TIMEOUT_MS` | 10000 | HTTP timeout (milliseconds) |
-| `SET_POWER_TASK_STACK_SIZE` | 8192 | Task stack size (bytes) |
-| `SET_POWER_TASK_PRIORITY` | 5 | Task priority |
-
-## Error Handling Mechanism
-
-### 1. HTTP Timeout Handling
-- Timeout duration: 10 seconds
-- Automatically returns error after timeout
-
-### 2. Consecutive Failure Handling
-- Records consecutive failure count
-- After 5 consecutive failures, attempts WiFi reconnection
-- Resets failure counter after successful reconnection
-
-### 3. WiFi Disconnection Handling
-- Automatic reconnection mechanism
-- Maximum 5 retry attempts
-- Continues normal operation after successful reconnection
-
-### 4. JSON Response Parsing
-- `result=0`: Setting successful
-- `result=2`: Device offline (considered successful)
-- `result=10000`: Authentication failure
-- Other: Unknown error
-
-## Extension Feature Suggestions
-
-### 1. Dynamic Power Adjustment
-
-```c
-// Add to set_power_task()
-int calculate_optimal_power(void) {
-    // Calculate dynamically based on time, weather, load conditions
-    struct tm timeinfo;
-    time_t now = time(NULL);
-    localtime_r(&now, &timeinfo);
-    
-    // Solar inverter: full power during daytime, stop at night (no solar energy)
-    if (timeinfo.tm_hour >= 6 && timeinfo.tm_hour < 18) {
-        return 100;  // 100% during daytime
-    } else {
-        return 0;    // 0% at night (no solar power available)
-    }
-}
+```yaml
+# Monitor grid power and adjust solar inverter
+on_inverter_output_power_adjustment:
+  - then:
+      - lambda: |-
+          float power_gap = power_gap_watts;
+          int current_power = id(current_power_percent);
+          
+          // Each 10% = 120W
+          int power_step_change = (int)(abs(power_gap) / 120.0);
+          
+          if (power_gap > 0) {
+            // Reduce solar generation
+            int new_power = current_power - (power_step_change * 10);
+            if (new_power < 10) new_power = 10;
+            id(solar_inverter).set_output_power(new_power);
+          } else if (power_gap < 0) {
+            // Increase solar generation
+            int new_power = current_power + (power_step_change * 10);
+            if (new_power > 100) new_power = 100;
+            id(solar_inverter).set_output_power(new_power);
+          }
 ```
 
-### 2. HTTPS Support
+### 2. Time-Based Power Scheduling
 
-Modify URL and configuration:
-
-```c
-#define API_URL "https://server-tj.shuoxd.com:8443/v1/manage/setOnGridInverterParam"
-
-esp_http_client_config_t config = {
-    .url = API_URL,
-    .transport_type = HTTP_TRANSPORT_OVER_SSL,
-    .cert_pem = server_cert_pem_start,  // Server certificate
-    // ... other configurations
-};
+```yaml
+# Schedule power levels throughout the day
+time:
+  - platform: sntp
+    on_time:
+      # Morning: Start with moderate power
+      - hours: 6
+        minutes: 0
+        then:
+          - lambda: id(solar_inverter).set_output_power(50);
+      
+      # Midday: Maximum power
+      - hours: 10
+        minutes: 0
+        then:
+          - lambda: id(solar_inverter).set_output_power(100);
+      
+      # Evening: Reduce power
+      - hours: 18
+        minutes: 0
+        then:
+          - lambda: id(solar_inverter).set_output_power(30);
+      
+      # Night: Minimum power (solar panels inactive)
+      - hours: 22
+        minutes: 0
+        then:
+          - lambda: id(solar_inverter).set_output_power(10);
 ```
 
-### 3. Login Feature
+### 3. Power Control with Rate Limiting
 
-Add login API call to automatically get JSESSIONID:
+```yaml
+globals:
+  - id: last_adjustment_time
+    type: unsigned long
+    initial_value: '0'
 
-```c
-esp_err_t login_and_get_session(const char *email, const char *password, char *session_out);
+# Rate-limited power adjustment (minimum 10 seconds between changes)
+lambda: |-
+  const uint32_t now = millis();
+  const uint32_t RATE_LIMIT_MS = 10 * 1000;  // 10 seconds
+  
+  if (now - id(last_adjustment_time) >= RATE_LIMIT_MS) {
+    id(solar_inverter).set_output_power(new_power_level);
+    id(last_adjustment_time) = now;
+    ESP_LOGI("power_control", "Power adjusted to %d%%", new_power_level);
+  } else {
+    ESP_LOGD("power_control", "Rate limit active, skipping adjustment");
+  }
 ```
 
-### 4. OTA Firmware Update
+## Technical Details
 
-Integrate ESP-IDF OTA functionality for remote updates.
+### Power Level Constraints
+
+- **Valid Range**: 10% - 100%
+- **Step Size**: 10%
+- **Valid Values**: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+- **No 0% Support**: Tentek inverters do not support 0% power setting
+
+### API Communication
+
+- **Protocol**: HTTP (not HTTPS)
+- **Authentication**: MD5 signature-based with automatic login
+- **Endpoint**: Tentek cloud API server
+- **Session Management**: Automatic JSESSIONID handling
+- **Retry Logic**: Configurable retry attempts with exponential backoff
+
+### Performance Characteristics
+
+- **Request Duration**: ~500ms - 2s (network dependent)
+- **Memory Usage**: ~4KB heap per component instance
+- **WiFi Dependency**: Requires active WiFi connection
 
 ## Troubleshooting
 
-### Issue 1: Compile error `mbedtls/md5.h not found`
+### Issue 1: Authentication Failed
 
-**Solution**:
+**Symptoms**: Log shows "Authentication failed" or "Login error"
+
+**Solutions**:
+1. Verify email and password are correct in `secrets.yaml`
+2. Check Tentek account is active and accessible
+3. Ensure device serial number matches your inverter
+
+### Issue 2: Device Offline
+
+**Symptoms**: API returns "Device offline"
+
+**Solutions**:
+1. Check inverter is powered on and connected to internet
+2. Verify device serial number is correct
+3. Check inverter cloud connection status in Tentek app
+
+### Issue 3: Request Timeout
+
+**Symptoms**: HTTP request timeout errors
+
+**Solutions**:
+1. Increase `request_timeout` value (e.g., 15s or 20s)
+2. Check WiFi signal strength on ESP32
+3. Verify network allows outbound HTTP connections
+
+### Issue 4: Invalid Power Level
+
+**Symptoms**: Power setting has no effect
+
+**Solutions**:
+1. Ensure power value is multiple of 10 (10, 20, ..., 100)
+2. Check inverter supports the requested power level
+3. Review logs for error messages
+
+## Development and Contributing
+
+### Building from Source
+
+1. Clone the repository:
 ```bash
-idf.py menuconfig
-# Navigate to Component config → mbedTLS → Ensure MD5 support is enabled
+git clone https://github.com/chinawrj/esphome-component-inverter_tentek.git
+cd esphome-component-inverter_tentek
 ```
 
-### Issue 2: WiFi connection failure
+2. Test with ESPHome:
+```bash
+esphome config your_device.yaml
+esphome compile your_device.yaml
+```
 
-**Check items**:
-1. WiFi SSID and password are correct
-2. 2.4GHz WiFi support (ESP32 does not support 5GHz)
-3. Router allows new device connections
+### Project Structure
 
-### Issue 3: HTTP request timeout
+```
+inverter_tentek/
+├── __init__.py           # ESPHome component registration
+├── inverter_tentek.h     # C++ header file
+├── inverter_tentek.cpp   # C++ implementation
+├── README.md             # This file
+└── CMakeLists.txt        # ESP-IDF build configuration
+```
 
-**Possible causes**:
-1. Server unreachable
-2. Network firewall blocking
-3. DNS resolution failure
+### Contributing Guidelines
 
-**Solutions**:
-- Increase timeout duration
-- Use IP address instead of domain name
-- Check network connection
-
-### Issue 4: Authentication failure (result=10000)
-
-**Reason**: JSESSIONID has expired
-
-**Solutions**:
-1. Use Python script to re-login and get new JSESSIONID
-2. Implement automatic login feature
-
-## Performance Optimization
-
-### Memory Optimization
-- Adjust `SET_POWER_TASK_STACK_SIZE` based on actual requirements
-- Use `uxTaskGetStackHighWaterMark()` to monitor stack usage
-
-### Power Consumption Optimization
-- Use WiFi power saving mode
-- Use Deep Sleep between request intervals
-- Reduce log output level
-
-## References
-
-- [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
-- [ESP HTTP Client](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_client.html)
-- [FreeRTOS](https://www.freertos.org/Documentation/RTOS_book.html)
-- [ESP WiFi](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with clear commit messages in English
+4. Test thoroughly with actual hardware
+5. Submit a pull request
 
 ## License
 
-This example code follows the ESP-IDF license (Apache 2.0)
+This component follows the Apache 2.0 license.
 
-## Contributing
+## Support
 
-Issues and Pull Requests are welcome to improve this example!
+- **Issues**: [GitHub Issues](https://github.com/chinawrj/esphome-component-inverter_tentek/issues)
+- **ESPHome**: [ESPHome Documentation](https://esphome.io/)
+
+## Related Projects
+
+- [esphome-component-powersync](https://github.com/chinawrj/esphome-component-powersync) - Distributed power monitoring system
+- [esphome-component-dlt645](https://github.com/chinawrj/esphome-component-dlt645) - DL/T 645 smart meter protocol
+
+## Changelog
+
+### Version 1.0.0 (2025-10-29)
+- ✅ Initial release
+- ✅ Basic power control functionality
+- ✅ ESPHome integration
+- ✅ Authentication and session management
+- ✅ Error handling and retry mechanism

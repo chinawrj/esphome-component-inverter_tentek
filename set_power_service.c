@@ -42,6 +42,7 @@ typedef struct {
     uint32_t total_requests;
     uint32_t successful_requests;
     uint32_t failed_requests;
+    uint32_t skipped_requests;       // Requests skipped due to deduplication
     uint32_t session_refreshes;
     
     // FreeRTOS resources
@@ -54,8 +55,8 @@ static set_power_service_state_t s_service = {0};
 static char g_jsessionid_from_cookie[64] = {0};
 
 /* Smart deduplication for power requests */
-static int s_last_successful_power = -1;  // Last successfully set power (-1 = not set)
-static int64_t s_last_success_time_ms = 0;  // Timestamp of last successful request
+static int s_last_successful_power = -1;  // Last successfully set power (-1 = invalid, ensures first request always sent)
+static int64_t s_last_success_time_ms = 0;  // Timestamp of last successful request (0 = no success yet)
 #define FORCE_SYNC_INTERVAL_MS (5 * 60 * 1000)  // 5 minutes force sync
 
 /* Forward declarations */
@@ -454,6 +455,13 @@ static void service_task(void *pvParameters)
                         s_last_success_time_ms > 0) {
                         ESP_LOGI(TAG, "⏭️  Skipping duplicate request: power=%d%% (same as last), elapsed=%lld ms (<%lld ms force sync)", 
                                 cmd.output_power, elapsed_ms, (int64_t)FORCE_SYNC_INTERVAL_MS);
+                        
+                        // Update statistics: count as skipped request
+                        xSemaphoreTake(s_service.state_mutex, portMAX_DELAY);
+                        s_service.total_requests++;
+                        s_service.skipped_requests++;  // Track deduplication efficiency
+                        xSemaphoreGive(s_service.state_mutex);
+                        
                         result = ESP_OK;  // Treat as success (no need to send)
                         break;
                     }
@@ -755,6 +763,7 @@ esp_err_t set_power_service_get_status(set_power_service_status_t *status)
     status->total_requests = s_service.total_requests;
     status->successful_requests = s_service.successful_requests;
     status->failed_requests = s_service.failed_requests;
+    status->skipped_requests = s_service.skipped_requests;
     status->session_refreshes = s_service.session_refreshes;
     strncpy(status->jsessionid, s_service.jsessionid, sizeof(status->jsessionid) - 1);
     

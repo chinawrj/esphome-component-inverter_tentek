@@ -58,6 +58,7 @@ typedef struct {
     uint32_t total_requests;         /*!< Total number of requests sent */
     uint32_t successful_requests;    /*!< Number of successful requests */
     uint32_t failed_requests;        /*!< Number of failed requests */
+    uint32_t skipped_requests;       /*!< Number of requests skipped (deduplication) */
     uint32_t session_refreshes;      /*!< Number of times JSESSIONID was refreshed */
     char jsessionid[64];             /*!< Current JSESSIONID (read-only) */
 } set_power_service_status_t;

@@ -120,7 +120,7 @@ class InverterTentekComponent : public Component {
   std::string email_;              ///< User email for authentication
   std::string password_;           ///< User password for authentication
   std::string device_sn_;          ///< Device serial number
-  int output_power_{100};          ///< Current power output setting (0-100%)
+  int output_power_{-1};           ///< Current power output setting (-1=not set, 0-100% valid)
   uint32_t request_timeout_ms_{10000};  ///< HTTP request timeout
   uint8_t max_retry_count_{3};     ///< Maximum retry count
   

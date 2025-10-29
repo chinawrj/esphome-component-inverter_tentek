@@ -22,7 +22,8 @@ void InverterTentekComponent::set_output_power(int power) {
     return;
   }
 
-  if (power == output_power_) {
+  // Skip duplicate check if output_power_ is -1 (not yet set)
+  if (output_power_ != -1 && power == output_power_) {
     ESP_LOGD(TAG, "Power already set to %d%%, ignoring duplicate request", power);
     return;
   }
@@ -59,7 +60,11 @@ void InverterTentekComponent::setup() {
   ESP_LOGI(TAG, "Configuration:");
   ESP_LOGI(TAG, "  ├─ Email: %s", email_.c_str());
   ESP_LOGI(TAG, "  ├─ Device SN: %s", device_sn_.c_str());
-  ESP_LOGI(TAG, "  ├─ Output Power: %d%%", output_power_);
+  if (output_power_ == -1) {
+    ESP_LOGI(TAG, "  ├─ Output Power: Not set (waiting for first automation call)");
+  } else {
+    ESP_LOGI(TAG, "  ├─ Output Power: %d%%", output_power_);
+  }
   ESP_LOGI(TAG, "  ├─ Request Timeout: %u ms", request_timeout_ms_);
   ESP_LOGI(TAG, "  └─ Max Retry Count: %u", max_retry_count_);
   
@@ -89,12 +94,7 @@ void InverterTentekComponent::setup() {
   
   ESP_LOGI(TAG, "✅ set_power_service initialized successfully");
   ESP_LOGI(TAG, "   (Initial authentication will happen in background)");
-  
-  // Set initial power output (non-blocking, will be queued)
-  if (output_power_ != 100) {
-    ESP_LOGI(TAG, "Setting initial power to %d%%...", output_power_);
-    set_power_service_set_output(output_power_, false);
-  }
+  ESP_LOGI(TAG, "   Note: No initial power setting sent - waiting for first automation call");
   
   ESP_LOGI(TAG, "✅ Inverter Tentek Component initialized successfully");
 }
@@ -113,9 +113,14 @@ void InverterTentekComponent::loop() {
     if (set_power_service_get_status(&status) == ESP_OK) {
       ESP_LOGI(TAG, "📊 Service Statistics:");
       ESP_LOGI(TAG, "   ├─ Authenticated: %s", status.is_authenticated ? "Yes" : "No");
-      ESP_LOGI(TAG, "   ├─ Current Power Setting: %d%%", output_power_);
+      if (output_power_ == -1) {
+        ESP_LOGI(TAG, "   ├─ Current Power Setting: Not set yet");
+      } else {
+        ESP_LOGI(TAG, "   ├─ Current Power Setting: %d%%", output_power_);
+      }
       ESP_LOGI(TAG, "   ├─ Total Requests: %lu", status.total_requests);
       ESP_LOGI(TAG, "   ├─ Successful: %lu", status.successful_requests);
+      ESP_LOGI(TAG, "   ├─ Skipped (Dedup): %lu", status.skipped_requests);
       ESP_LOGI(TAG, "   ├─ Failed: %lu", status.failed_requests);
       ESP_LOGI(TAG, "   └─ Session Refreshes: %lu", status.session_refreshes);
     }

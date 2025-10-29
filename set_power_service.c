@@ -53,6 +53,11 @@ typedef struct {
 static set_power_service_state_t s_service = {0};
 static char g_jsessionid_from_cookie[64] = {0};
 
+/* Smart deduplication for power requests */
+static int s_last_successful_power = -1;  // Last successfully set power (-1 = not set)
+static int64_t s_last_success_time_ms = 0;  // Timestamp of last successful request
+#define FORCE_SYNC_INTERVAL_MS (5 * 60 * 1000)  // 5 minutes force sync
+
 /* Forward declarations */
 static void service_task(void *pvParameters);
 static esp_err_t login_and_get_session(char *jsessionid_out);
@@ -438,6 +443,26 @@ static void service_task(void *pvParameters)
                 case SET_POWER_CMD_SET_OUTPUT:
                     ESP_LOGI(TAG, "Processing SET_OUTPUT command: power=%d%%", cmd.output_power);
                     
+                    // Smart deduplication: Skip if power unchanged and <5min elapsed
+                    struct timeval tv_now;
+                    gettimeofday(&tv_now, NULL);
+                    int64_t now_ms = (int64_t)tv_now.tv_sec * 1000LL + (int64_t)tv_now.tv_usec / 1000LL;
+                    int64_t elapsed_ms = now_ms - s_last_success_time_ms;
+                    
+                    if (s_last_successful_power == cmd.output_power && 
+                        elapsed_ms < FORCE_SYNC_INTERVAL_MS && 
+                        s_last_success_time_ms > 0) {
+                        ESP_LOGI(TAG, "⏭️  Skipping duplicate request: power=%d%% (same as last), elapsed=%lld ms (<%lld ms force sync)", 
+                                cmd.output_power, elapsed_ms, (int64_t)FORCE_SYNC_INTERVAL_MS);
+                        result = ESP_OK;  // Treat as success (no need to send)
+                        break;
+                    }
+                    
+                    if (elapsed_ms >= FORCE_SYNC_INTERVAL_MS && s_last_success_time_ms > 0) {
+                        ESP_LOGI(TAG, "🔄 Force sync triggered: %lld ms elapsed (>=%lld ms), sending power=%d%%",
+                                elapsed_ms, (int64_t)FORCE_SYNC_INTERVAL_MS, cmd.output_power);
+                    }
+                    
                     // Check authentication
                     xSemaphoreTake(s_service.state_mutex, portMAX_DELAY);
                     bool is_auth = s_service.authenticated;
@@ -461,6 +486,12 @@ static void service_task(void *pvParameters)
                         
                         // Success or device offline - both are acceptable
                         if (result == ESP_OK) {
+                            // Update last successful request tracking
+                            s_last_successful_power = cmd.output_power;
+                            gettimeofday(&tv_now, NULL);
+                            s_last_success_time_ms = (int64_t)tv_now.tv_sec * 1000LL + (int64_t)tv_now.tv_usec / 1000LL;
+                            ESP_LOGI(TAG, "✅ Updated last successful power: %d%% at %lld ms", 
+                                    s_last_successful_power, s_last_success_time_ms);
                             break;
                         }
                         

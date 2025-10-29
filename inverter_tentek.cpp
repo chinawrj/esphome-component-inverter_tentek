@@ -28,20 +28,22 @@ void InverterTentekComponent::set_output_power(int power) {
     return;
   }
 
-  output_power_ = power;
-  
   if (!service_initialized_) {
-    ESP_LOGI(TAG, "Service not initialized yet, power will be set to %d%% after initialization", power);
+    ESP_LOGW(TAG, "⚠️ Service not initialized yet! Cannot set power to %d%%", power);
     return;
   }
 
-  ESP_LOGI(TAG, "Setting output power to %d%%...", power);
+  ESP_LOGI(TAG, "Requesting power change to %d%% (current: %s)...", 
+           power, output_power_ == -1 ? "Not set" : std::to_string(output_power_).c_str());
   
   // Send command through service (non-blocking)
+  // Note: output_power_ will be updated ONLY when service layer confirms success
+  // via the last_successful_power tracking in set_power_service.c
   esp_err_t err = set_power_service_set_output(power, false);
   
   if (err == ESP_OK) {
-    ESP_LOGI(TAG, "✅ Power command queued successfully");
+    ESP_LOGI(TAG, "✅ Power command queued successfully (power will update after HTTP success)");
+    // DO NOT update output_power_ here - wait for actual HTTP success
   } else {
     ESP_LOGE(TAG, "❌ Failed to queue power command: %s", esp_err_to_name(err));
   }
@@ -104,6 +106,19 @@ void InverterTentekComponent::loop() {
     return;
   }
   
+  // Sync output_power_ with actual successful power from service layer
+  // This ensures output_power_ only reflects what was ACTUALLY set via HTTP
+  set_power_service_status_t status;
+  if (set_power_service_get_status(&status) == ESP_OK) {
+    // Get last successful power from service layer (via get_last_successful_power API)
+    int last_successful = set_power_service_get_last_successful_power();
+    if (last_successful != -1 && last_successful != output_power_) {
+      ESP_LOGI(TAG, "🔄 Syncing output_power_: %d%% → %d%% (from HTTP success)", 
+               output_power_, last_successful);
+      output_power_ = last_successful;
+    }
+  }
+  
   // Periodic status logging (every 30 seconds)
   uint32_t current_time = millis();
   if (current_time - last_status_log_time_ > 30000) {
@@ -111,7 +126,7 @@ void InverterTentekComponent::loop() {
     
     set_power_service_status_t status;
     if (set_power_service_get_status(&status) == ESP_OK) {
-      ESP_LOGI(TAG, "📊 Service Statistics:");
+      ESP_LOGI(TAG, "📊 Service Statistics [v2024.10.29-fix-init-power]:");
       ESP_LOGI(TAG, "   ├─ Authenticated: %s", status.is_authenticated ? "Yes" : "No");
       if (output_power_ == -1) {
         ESP_LOGI(TAG, "   ├─ Current Power Setting: Not set yet");

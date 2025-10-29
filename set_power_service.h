@@ -179,6 +179,16 @@ esp_err_t set_power_service_get_status(set_power_service_status_t *status);
  */
 bool set_power_service_is_ready(void);
 
+/**
+ * @brief Get last successfully set power value
+ * 
+ * Returns the power value that was last successfully confirmed via HTTP response.
+ * This is different from the requested power - it only reflects what was actually set.
+ * 
+ * @return Last successful power (10-100%), or -1 if no successful request yet
+ */
+int set_power_service_get_last_successful_power(void);
+
 #ifdef __cplusplus
 }
 #endif

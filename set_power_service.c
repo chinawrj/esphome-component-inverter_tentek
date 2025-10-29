@@ -784,3 +784,10 @@ bool set_power_service_is_ready(void)
     
     return is_auth;
 }
+
+int set_power_service_get_last_successful_power(void)
+{
+    // Return the last successfully set power from service layer
+    // No mutex needed as this is a simple atomic read of static variable
+    return s_last_successful_power;
+}
